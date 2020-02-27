@@ -131,7 +131,20 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[],  # Optional
+    install_requires=[
+        "cycler==0.10.0",
+        "kiwisolver==1.1.0",
+        "lml==0.0.9",
+        "matplotlib==3.1.3",
+        "numpy==1.18.1",
+        "pyexcel==0.5.15",
+        "pyexcel-io==0.5.20",
+        "pyparsing==2.4.6",
+        "python-dateutil==2.8.1",
+        "scipy==1.4.1",
+        "six==1.14.0",
+        "texttable==1.6.2",
+    ],  # Optional
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
     # syntax, for example:

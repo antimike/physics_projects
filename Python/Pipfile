@@ -7,8 +7,13 @@ verify_ssl = true
 pipenv-setup = "*"
 pytest = "*"
 hypothesis = "*"
+sphinx = "*"
 
 [packages]
+numpy = "*"
+scipy = "*"
+matplotlib = "*"
+pyexcel = "*"
 
 [requires]
 python_version = "3.6"
