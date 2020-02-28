@@ -1,4 +1,0 @@
-- Add overloaded "constructor" methods to named tuples 
-	- (these inherit from the namedtuple base class)
-	- Could make graphics math easier (e.g., methods to convert arrays to points)
-
