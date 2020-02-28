@@ -37,18 +37,6 @@ def annotate_point(grid, point, marker, color):
     plot.annotate(point.labels, (point.x, point.y), textcoords='offset points', xytext=(0,10), ha='center')
     pass
 
-def stringify_point(x, y, *units):
-    def unitize_number(num, unit):
-        return "{:.2f}".format(num) + ' ' + unit
-    unit_list = list(units or ())
-    if len(unit_list) < 2:
-        unit_list += ['']*(2 - len(unit_list))
-    return '(' \
-        + unitize_number(x, unit_list[0]) \
-        + ',' + unitize_number(y, unit_list[1]) \
-        + ')'
-    pass
-
 def initialize_new_figure(title, num_subplot_rows=1, num_subplot_cols=1):
     pass
 
