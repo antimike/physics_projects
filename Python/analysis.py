@@ -1,14 +1,7 @@
 import numpy as np
 from scipy import optimize
 from inspect import signature
-import collections
-
-# Convenience struct types:
-Data_With_Errors = collections.namedtuple('Data_With_Errors', ['x', 'y', 'ebars'])
-Regression_Result = collections.namedtuple('Regression_Result', ['params', 'std_devs'])
-Linear_Regression = collections.namedtuple(
-    'Linear_Regression', ['slope', 'intercept', 'r_value', 'p_value', 'std_err']
-)
+import structs
 
 def weighted_regression(data_with_errors, functional_form, initial_guess):
     func_sig = signature(functional_form)
@@ -23,11 +16,11 @@ def weighted_regression(data_with_errors, functional_form, initial_guess):
         sigma=data_with_errors.ebars,
         absolute_sigma=True
     )
-    return Regression_Result(
+    return structs.Regression_Result(
         dict(zip(param_names, params)),
         dict(zip(param_names, np.sqrt(np.diag(cov_matrix))))
     )
 
 def flatten_data_array(xvals, yvals_array, ddof=0):
-    return Data_With_Errors(xvals, np.average(yvals_array, axis=0),
+    return structs.Data_With_Errors(xvals, np.average(yvals_array, axis=0),
         np.std(yvals_array, axis=0, ddof=ddof))

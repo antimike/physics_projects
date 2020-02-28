@@ -34,3 +34,20 @@ def filter_row(row_index, row):
 
 def clean_sheet(sheet):
     del sheet.row[filter_row]
+
+# Text manipulation
+
+## TODO: Add more formatting flexibility
+def unitize_number(num, unit, format_str='{:.2f}'):
+    return format_str.format(num) + ' ' + unit
+
+def stringify_point(x, y, *units):
+    unit_list = list(units or ())
+    if len(unit_list) < 2:
+        unit_list += ['']*(2 - len(unit_list))
+    return '(' \
+        + unitize_number(x, unit_list[0]) \
+        + ',' + unitize_number(y, unit_list[1]) \
+        + ')'
+
+def stringify_points()
