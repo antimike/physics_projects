@@ -1,20 +1,72 @@
 import collections
 
-Data_With_Labels = collections.namedtuple('Data_With_Labels', ['x', 'y', 'labels'])
-Data_With_Errors = collections.namedtuple('Data_With_Errors', ['x', 'y', 'ebars'])
-Regression_Result = collections.namedtuple('Regression_Result', ['params', 'std_devs'])
-Linear_Regression = collections.namedtuple(
-    'Linear_Regression', ['slope', 'intercept', 'r_value', 'p_value', 'std_err']
+Data_With_Labels = collections.namedtuple(
+    'Data_With_Labels',
+    ['x', 'y', 'labels'],
+    defaults=[[], [], []]
 )
-Text_Attributes = collections.namedtuple(
+
+Data_With_Errors = collections.namedtuple(
+    'Data_With_Errors',
+    ['x', 'y', 'ebars'],
+    defaults=[[], [], []]
+)
+
+Regression_Result = collections.namedtuple(
+    'Regression_Result',
+    ['params', 'std_devs'],
+    defaults=[{}, {}]
+)
+
+__Text_Attributes = collections.namedtuple(
     'Text_Attributes',
     ['size', 'weight', 'ha', 'va'],
-    defaults=[Text_Size.MEDIUM, Text_Weight.NORMAL, Text_Align.CENTER, Text_Align.CENTER]
+    defaults=[Text_Size.SMALL, Text_Weight.NORMAL, Text_Align.CENTER, Text_Align.CENTER]
 )
-Plot_Attributes = collections.namedtuple(
+
+class Text_Attributes(__Text_Attributes):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    @staticmethod
+    def title():
+        return Text_Attributes(Text_Size.LARGE, Text_Weight.BOLD, Text_Align.CENTER, Text_Align.CENTER)
+    @staticmethod
+    def subtitle():
+        return Text_Attributes(Text_Size.MEDIUM, Text_Weight.SEMIBOLD, Text_Align.CENTER, Text_Align.CENTER)
+    @staticmethod
+    def normal():
+        return Text_Attributes()
+
+__Plot_Attributes = collections.namedtuple(
     'Plot_Attributes',
     ['marker', 'color', 'ebar_color', 'label', 'linestyle']
     defaults=[Markers.POINT, Colors.BLUE, Colors.RED, Linestyles.SOLID]
+)
+
+class Plot_Attributes(__Plot_Attributes):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    @staticmethod
+    def cyclic_attrs(position, label):
+        clist, lstyles, markers = list(Colors), list(Linestyles) = list(Markers)
+        return PlotAttributes(
+            color: clist[2*(position - 1) % len(clist)],
+            ebar_color: clist[(2*position - 1) % len(clist)],
+            linestyle: lstyles[(position - 1) % len(lstyles)],
+            marker: markers[(position - 1) % len(markers)],
+            label: label
+        )
+
+Plottable_Function = collections.namedtuple(
+    'Plottable_Function',
+    ['fn', 'plot_attrs', 'num_points'],
+    defaults=[lambda x: 0, Plot_Attributes.cyclic_attrs(0), 100]
+)
+
+Plottable_Data = collections.namedtuple(
+    'Plottable_Data',
+    ['data', 'plot_attrs'],
+    defaults=[Data_With_Errors(), Plot_Attributes.cyclic_attrs(0)]
 )
 
 class Colors(Enum):
@@ -23,7 +75,7 @@ class Colors(Enum):
     CYAN: 'c'
     MAGENTA: 'm'
     YELLOW: 'y'
-    BLACK: 'b'
+    BLACK: 'k'
     WHITE: 'w'
 
 class Text_Weight(Enum):
@@ -81,7 +133,8 @@ class Markers(Enum):
     X_FILLED: 'X'
     DIAMOND_THICK: 'D'
     DIAMOND_THIN: 'd'
-    VLINE: '|'
+    VLINE: '|'    'Plottable_Data',
+    ['data', 'plot_attrs']
     HLINE: '-'
     NONE: None
 
