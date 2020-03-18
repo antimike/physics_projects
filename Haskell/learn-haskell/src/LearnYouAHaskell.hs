@@ -55,4 +55,74 @@ data UnitVector = UnitVector {
   azimuth :: Float
 }
 
-data Spinor (n :: UnitVector) => Spinor
+-- Contexts∷
+-- 1. Experiments / Measurements
+-- 2. Units
+-- 3. Errors
+-- 4. Spin (?)
+-- 5. Quantum State
+{-
+How does a function which produces a quantum state process a "classical" state?
+By contrast, how does it process another quantum state?
+QState = [state1, state2, state3]
+f(state) = states
+==> f(states) = [f(state) | state <- states]
+ensemble of quantum states: "nested" monad
+Superposition :: Monad
+- How to guarantee that amplitudes sum to 1 programmatically?
+  - "N-Branching" of lists of numbers
+  {x, y, z} -> {x/2, x/2, y, z}
+- Matrix exponentials
+- Desired behavior:
+  Given a measurement setup and an initial state, calculate or approximate some
+  relevant quantity.
+- Measurement apparatus has well-defined behavior on classical states
+- Reversible vs. probabilistic measurements
+- qstate >>= measurement
+- Hermitian conjugate (adjoint)
+- class Hilbert (?)
+  - derives from Monoid:
+    - mzero = vacuum
+    - mplus = superpose
+    - fmap = lift
+    - bind = action on basis vectors
+    - Implements additional structure: inner product
+      - Functor?
+
+* Question: Given a "free" context constructor, how do we represent its operation on
+  contextual objects?
+- Context constructors in physics:
+  - Ensemble
+    --> Meta-ensembles?
+  - State
+  - Coordinates
+  - Tensors?
+    --> Bind == covariant derivative?
+    ...or Bind == "tensor of tensor"
+  - Differential forms
+    --> Bind == exterior derivative from del
+  - Operator
+    --> Bind == commutator; composition
+  - Category: Operators on H
+    - Left / right identities: trivial
+    - Not associative:
+      [A, [B, C]] + [B, [C, A]] + [C, [A, B]] = 0
+  - Map x -> operator: quantum field
+    - Composition of fields: tensor product of Fock spaces
+-}
+
+-- Ten commandments of grad school:
+-- When you're at work:
+-- 1. Don't play chess.
+-- 2. Don't sleep.
+-- 3. Don't do work in common spaces.
+-- 4. Reply to emails right away.
+-- 5. Don't read blogs or have non-math / physics tabs open.
+-- 6. Don't read Quora.
+-- 7. Make a point of talking to and interacting with people--start conversations about physics.
+-- 8. Collaborate on work.
+-- 9. Dress nicely.
+-- 10. Don't talk about outside life with colleagues.
+--
+-- Grad school hadith:
+-- 1. The best apology consists of impressive work.
