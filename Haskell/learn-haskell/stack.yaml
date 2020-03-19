@@ -42,7 +42,8 @@ packages:
 #
 # extra-deps: []
 extra-deps:
-  # - clock
+  # - Necessary for 'clock' and 'formatting' dependencies
+  # - Used for benchmarking
   - clock-0.8@sha256:b4ae207e2d3761450060a0d0feb873269233898039c76fceef9cc1a544067767,4113
   - formatting-6.3.7@sha256:08f8d8a73da707ac16e6e5f89035fa240e308329f16d06990ce9e4b66827ea4b,1757
   - old-locale-1.0.0.7@sha256:fa998be2c7e00cd26a6e9075bea790caaf3932caa3e9497ad69bc20380dd6911,1071

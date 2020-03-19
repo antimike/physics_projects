@@ -3,7 +3,12 @@ module NinetyNineHaskellProblems where
 import Control.Exception
 import Formatting
 import Formatting.Clock
+import Text.Printf
 import System.Clock
+
+-- import Data.Text.Lazy (Text)
+-- import Data.Text.Lazy.Builder (Builder)
+-- import Formatting
 
 {-
 Problem 1: Find the last element of a list
@@ -48,8 +53,12 @@ foldl_eager fn val (x:xs) =
 
 -- (Very) basic benchmarking function designed to print the execution time of an action
 benchmark :: a -> IO()
-benchmark a = do
-  start <- getTime Monotonic
-  void (evaluate a)
-  end <- getTime Monotonic
-  fprint (specs % "\n") start end
+benchmark a =
+  do
+    start <- getTime Monotonic
+    evaluate a
+    end <- getTime Monotonic
+    printf "%.2f \n" (toMs end start)
+  where
+    toMs t2 t1 = 1e-6 * val
+      where val = fromIntegral $ toNanoSecs (diffTimeSpec t2 t1) :: Float
