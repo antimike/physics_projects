@@ -58,7 +58,7 @@ benchmark a =
     start <- getTime Monotonic
     evaluate a
     end <- getTime Monotonic
-    printf "%.2f \n" (toMs end start)
+    printf "%.2f ms \n" (toMs end start)
   where
     toMs t2 t1 = 1e-6 * val
       where val = fromIntegral $ toNanoSecs (diffTimeSpec t2 t1) :: Float
