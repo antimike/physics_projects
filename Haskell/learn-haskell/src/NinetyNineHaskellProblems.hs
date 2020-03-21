@@ -1,3 +1,7 @@
+{-# LANGUAGE ExistentialQuantification, RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving, UndecidableInstances, FlexibleContexts #-}
+-- Necessary for Scott encodings of algebraic datatypes
+
 module NinetyNineHaskellProblems where
 
 import Control.Exception
@@ -147,6 +151,17 @@ Approaches to improving benchmark function:
 - Possibilities for automatic method detection / testing:
   - Wrapping entire module with a State monad to maintain a list of all fns / names
 --}
+
+-- varargify :: (a -> b) -> [a] -> b
+
+-- data Problem = Problem {
+--   name :: String,
+--   desc :: String,
+--   solns :: [a]
+-- }
+
+
+
 benchmark :: a -> IO()
 benchmark a =
   do
@@ -157,3 +172,27 @@ benchmark a =
   where
     toMs t2 t1 = 1e-6 * val
       where val = fromIntegral $ toNanoSecs (diffTimeSpec t2 t1) :: Float
+
+{-
+Recursive datatypes and Scott encodings
+-}
+
+-- First example: Pair implementation
+newtype PairT = PairT { unpack :: forall c. (a -> b -> c) -> c }
+
+data PairD a b =
+  PairD { unpack :: forall c. (a -> b -> c) -> c}
+
+-- The following doesn't work--existentials in the data constructor
+-- prevent the use of direct instance declaration.
+-- instance Show (PairD a b) where
+--   show p = uncurry (++) (show.fstD &&& show.sndD)
+
+deriving instance (Show a, Show b) => Show (PairD a b)
+
+-- new_pair :: Show a Show b => a -> b -> Pair' a b
+-- new_pair a b = Pair' (\f -> f a b)
+fstD :: PairD a b -> a
+fstD (PairD up) = up $ \x _ -> x
+sndD :: PairD a b -> b
+sndD (PairD up) = up $ \_ y -> y
