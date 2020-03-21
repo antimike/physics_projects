@@ -180,7 +180,7 @@ Recursive datatypes and Scott encodings
 -- First example: Pair implementation
 newtype PairT = PairT { unpack :: forall c. (a -> b -> c) -> c }
 
-data PairD a b =
+data PairD a b (PairT t) =
   PairD { unpack :: forall c. (a -> b -> c) -> c}
 
 -- The following doesn't work--existentials in the data constructor
