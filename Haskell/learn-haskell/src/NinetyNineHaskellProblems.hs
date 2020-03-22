@@ -161,7 +161,10 @@ Approaches to improving benchmark function:
 -- }
 
 {-
-Polyvariadic functions
+Polyvariadic functions:
+Approach is to define a "wrapper" function of type [a] -> r that uses
+continuation passing and pattern matching to infer the correct instance type
+from its context
 -}
 
 
@@ -181,21 +184,13 @@ Recursive datatypes and Scott encodings
 -}
 
 -- First example: Pair implementation
-newtype PairT = PairT { unpack :: forall c. (a -> b -> c) -> c }
+newtype PairT a b = PairT { unpack :: forall c. (a -> b -> c) -> c }
 
-data PairD a b (PairT t) =
-  PairD { unpack :: forall c. (a -> b -> c) -> c}
+instance (Show a, Show b) => Show (PairT a b) where
+  show (PairT up) = up $ \x y -> "(" ++ show x ++ ", " ++ show y ++ ")"
 
--- The following doesn't work--existentials in the data constructor
--- prevent the use of direct instance declaration.
--- instance Show (PairD a b) where
---   show p = uncurry (++) (show.fstD &&& show.sndD)
-
-deriving instance (Show a, Show b) => Show (PairD a b)
-
--- new_pair :: Show a Show b => a -> b -> Pair' a b
--- new_pair a b = Pair' (\f -> f a b)
-fstD :: PairD a b -> a
-fstD (PairD up) = up $ \x _ -> x
-sndD :: PairD a b -> b
-sndD (PairD up) = up $ \_ y -> y
+pairT a b = PairT $ (\f -> f a b)
+fstT :: PairT a b -> a
+fstT (PairT up) = up $ \x _ -> x
+sndT :: PairT a b -> b
+sndT (PairT up) = up $ \_ y -> y
