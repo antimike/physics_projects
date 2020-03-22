@@ -160,6 +160,9 @@ Approaches to improving benchmark function:
 --   solns :: [a]
 -- }
 
+{-
+Polyvariadic functions
+-}
 
 
 benchmark :: a -> IO()
