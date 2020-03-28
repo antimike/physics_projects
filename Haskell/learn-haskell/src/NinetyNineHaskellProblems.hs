@@ -14,6 +14,11 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Writer
 
+-- For SPOJ-y problems involving long input strings / char arithmetic
+import qualified Data.ByteString.Lazy as BSL
+import Data.Char
+import qualified Data.ByteString.Char8 as BSC
+
 -- import Data.Text.Lazy (Text)
 -- import Data.Text.Lazy.Builder (Builder)
 -- import Formatting
@@ -194,3 +199,119 @@ fstT :: PairT a b -> a
 fstT (PairT up) = up $ \x _ -> x
 sndT :: PairT a b -> b
 sndT (PairT up) = up $ \_ y -> y
+
+-- Ideas: Haar transform
+  -- > Breakpoint detector for large datasets
+
+-- SPOJ problem: next palindrome
+-- Prerequisites (also useful for other SPOJ problems):
+  -- String arithmetic (for very long integer inputs)
+
+{-
+How to build the next palindrome:
+
+- reverse input
+- x:[] :-> x
+- x:y:[] :-> (x:y)
+- f m l :->
+  - l m l if l >= f
+  - f (m + 1) f otherwise
+
+8999999999
+
+899  :->  909
+
+- List of "endpoints" (i.e., (f:m:l) -> (f, l) applied recursively)
+- Recursive datatype to encapsulate parsing logic?
+
+y = reverse x - x
+z = positives y
+s = max x reverse x
+
+
+
+-}
+
+inc :: Char -> Char
+inc = chr . (+ 1) . ord
+
+
+peel' :: String -> [(Char, Char)]
+peel' [] = []
+peel' [x] = [(x, chr 0)]
+peel' str = peel str
+middle :: [a] -> [a]
+middle [] = []
+middle [x] = [x]
+middle xs = init.tail $ xs
+peel = (uncurry (:)) . ((head &&& last) &&& (peel'.middle))
+
+propagate :: EndsWithCarry -> EndsWithCarry
+
+isNum :: Char -> Bool
+isNum = (uncurry (&&)).((<= '9') &&& (>= 0))
+
+applyCarry :: Bool -> (Char, Char) -> (Char, Char)
+applyCarry b (x, y)
+  | b && isnum y   = (x, inc y)
+  | otherwise      = (x, y)
+--
+extractCarry :: (Char, Char) -> Bool
+extractCarry (x, y) = isnum y && y > x
+
+type PeeledWithCarry = (Bool, [(Char, Char)])
+
+accumulator :: Bookends -> Flagged PeeledString -> Flagged PeeledString
+accumulator (x, y) r =
+
+-- rectify = fst &&& (uncurry max)
+
+type Flagged a = (Bool, a)
+type PeeledString = [(Char, Char)]
+type Bookends = (Char, Char)
+
+isWhitespace :: Char -> Bool
+isWhitespace c = c == ' '
+
+incBookends :: Bookends -> Bookends
+incBookends = fst &&& (incNonWhitespace.snd)
+  where incNonWhitespace c = if (isWhitespace c) c else inc c
+
+rectifySnd :: Bookends -> Flagged Bookends
+rectifySnd (x, y) = (not (isSpace y) && y > x, (x, x))
+
+-- flagPair :: (Char, Char) -> Flagged (Char, Char)
+-- flagPair (x, y) = (not (isSpace y) && y > x, (x, x))
+
+applyFlag :: Flagged Bookends -> Flagged Bookends
+applyFlag (f, b) =
+
+rectify :: (Bookends -> Char) -> Bookends -> Bookends
+rectify fn = fn &&& fn
+
+-- TODO: Rewrite using (type-parameterized?) Monads / Arrows
+propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
+
+lessThan :: Bookends -> Bookends -> Bool
+lessThan b1 b2
+  | fst b1 == fst b2  = snd b1 < snd b2
+  | otherwise         = fst b1 < fst b2
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple = join (***)
+
+{-
+2002
+String -> list of bookends
+Apply accumulator: plus one / plus ten
+
+folder op
+-}
+-- dropwhile isspace : trim spaces
+
+
+
+-- 88889999 -> [89, 89, 89, 89] -> [(99, T), (99, T), (99, T), (99, T)]
+-- ->
+-- 888999     | 888999     | 888999     | 888999
+-- 999888 (F) | 899888 (T) | 889888 (T) | 888888 (T)

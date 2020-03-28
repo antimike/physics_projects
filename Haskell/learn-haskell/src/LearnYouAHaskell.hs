@@ -55,6 +55,28 @@ data UnitVector = UnitVector {
   azimuth :: Float
 }
 
+data BinaryTree a = EmptyTree | Root a BinaryTree a BinaryTree a
+  deriving (Read, Show, Ord, Eq)
+
+leaf :: (Ord a, Show a, Read a, Eq a) => a -> BinaryTree a
+leaf x = Root x EmptyTree EmptyTree
+
+addNode :: (Ord a, Show a, Read a, Eq a) => a -> BinaryTree a -> BinaryTree a
+addNode val tree@(Root r left right)
+  | val < r     = Root r (addNode val left) right
+  | val > r     = Root r left (addNode val right)
+  | otherwise   = tree
+
+searchTree :: (Ord a, Show a, Read a, Eq a) => BinaryTree a -> a -> Bool
+searchTree EmptyTree _ = False
+searchTree (Root root left right) val
+  | root < val   = searchTree right val
+  | root > val   = searchTree left val
+  | otherwise    = True
+
+-- TODO: Implement
+-- rebaseTree :: (Ord a, Show a, Read a, Eq a) => BinaryTree a -> a -> BinaryTree a
+
 -- Contexts∷
 -- 1. Experiments / Measurements
 -- 2. Units
