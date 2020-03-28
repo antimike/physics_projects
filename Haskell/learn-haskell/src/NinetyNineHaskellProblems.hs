@@ -302,11 +302,17 @@ mapTuple = join (***)
 
 a -> ((a -> a), [a]) -> ((a -> a), [a])
 
+{-
+Note: The following can almost certainly be accomplished more simply using arrows.
+*** NOTE: Use MapAccumL (!!!)
+-}
 
-class MutableOperator m a b where
+
+class (Monoid h) => MutableOperator m a b where
   begin :: a -> m a b
   continue :: m a b -> a -> m a b
-  history :: m a b -> [b]
+  history :: m a b -> h b
+  mapo ::
 
 
   infixl 7
