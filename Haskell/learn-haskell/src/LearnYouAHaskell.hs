@@ -58,6 +58,10 @@ data UnitVector = UnitVector {
 data BinaryTree a = EmptyTree | Root a BinaryTree a BinaryTree a
   deriving (Read, Show, Ord, Eq)
 
+instance Functor BinaryTree where
+  fmap fn EmptyTree = EmptyTree
+  fmap fn (Root val left right) = Root (fn val) (fmap fn left) (fmap fn right)
+
 leaf :: (Ord a, Show a, Read a, Eq a) => a -> BinaryTree a
 leaf x = Root x EmptyTree EmptyTree
 

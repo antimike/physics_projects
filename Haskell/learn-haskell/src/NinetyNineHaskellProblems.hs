@@ -300,12 +300,36 @@ lessThan b1 b2
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple = join (***)
 
+a -> ((a -> a), [a]) -> ((a -> a), [a])
+
+
+class MutableOperator m a b where
+  begin :: a -> m a b
+  continue :: m a b -> a -> m a b
+  history :: m a b -> [b]
+
+
+  infixl 7
+
+newtype Propagator a b = Propagator {
+  hist' :: [b],
+  comp' :: a -> b,
+  prop' :: a -> Residue a b -> Residue a b
+}
+
+instance MutableOperator (Propagator a b) where
+  process = prop'
+
+
+
 {-
 2002
 String -> list of bookends
 Apply accumulator: plus one / plus ten
 
-folder op
+folder: pre op post
+
+"Operator" class: Takes a value and a function, returning a value and a function
 -}
 -- dropwhile isspace : trim spaces
 
