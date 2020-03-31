@@ -55,6 +55,8 @@ data UnitVector = UnitVector {
   azimuth :: Float
 }
 
+
+
 data BinaryTree a = EmptyTree | Root a BinaryTree a BinaryTree a
   deriving (Read, Show, Ord, Eq)
 

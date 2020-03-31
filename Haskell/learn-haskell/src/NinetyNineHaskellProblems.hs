@@ -345,3 +345,9 @@ folder: pre op post
 -- ->
 -- 888999     | 888999     | 888999     | 888999
 -- 999888 (F) | 899888 (T) | 889888 (T) | 888888 (T)
+
+{-
+- Transcendental recursive data structures?
+- Generating fns of data structures?
+(Inspired by reading about data structure derivatives)
+-}
