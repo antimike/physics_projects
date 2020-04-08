@@ -248,6 +248,7 @@ instance Ord (Bookends) where
     | otherwise         = fst b1 < fst b2
 
 -- Comparator for 'Bookends' type
+-- Unnecessary bc of 'Ord' instance
 lessThan :: Bookends -> Bookends -> Bool
 lessThan b1 b2
   | fst b1 == fst b2  = snd b1 < snd b2
@@ -326,7 +327,18 @@ rectify fn = fn &&& fn
 -- TODO: Rewrite using (type-parameterized?) Monads / Arrows
 propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
 
+instance Functor (Flagged) where
+  fmap f: a -> b
+  [(c1, c2), (c3, c4), ...] -> [(c1, c1)]
+
 -- a -> ((a -> a), [a]) -> ((a -> a), [a])
+{-
+Options:
+1. Functor / monad / applicative instance for 'Flagged' type
+2. Arrow-based computation
+3. Traversable
+4. 
+-}
 
 
 -- Beginnings of a more 'sophisticated' solution using arrow-like operators
