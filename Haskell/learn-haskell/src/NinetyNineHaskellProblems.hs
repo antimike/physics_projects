@@ -232,13 +232,57 @@ s = max x reverse x
 
 -}
 
-inc :: Char -> Char
-inc = chr . (+ 1) . ord
+-- Type defns used in this problem:
+-- 'Flagged' pairs a type with a boolean flag.  Useful for indicating whether
+-- a 'carry' operation needs to be propagated after 'rectifying' a pair of chars.
+-- 'Bookends' is a type synonym for a pair of chars.  The name indicates their origin:
+-- the first and last chars (i.e., 'bookends') of a string are recursively 'peeled'
+-- off of a string into a list.
+type Flagged a = (Bool, a)
+type Bookends = (Char, Char)
+instance Eq (Bookends) where
+  (==) b1 b2 = fst b1 == fst b2 && snd b1 == snd b2
+instance Ord (Bookends) where
+  (<=) b1 b2
+    | fst b1 == fst b2  = snd b1 < snd b2
+    | otherwise         = fst b1 < fst b2
 
+-- Comparator for 'Bookends' type
+lessThan :: Bookends -> Bookends -> Bool
+lessThan b1 b2
+  | fst b1 == fst b2  = snd b1 < snd b2
+  | otherwise         = fst b1 < fst b2
 
-peel' :: String -> [(Char, Char)]
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple = join (***)
+
+-- 'sentinel' char: ASCII char corresponding to code 0
+sentinel = chr 0
+
+-- Helper to determine if a char is a number
+-- Useful for determining when a 'carry' operation is necessary
+isNum :: Char -> Bool
+isNum = (uncurry (&&)).((<= '9') &&& (>= 0))
+
+-- Helper to identify whitespace chars
+-- Since the only whitespace char used in this implementation is ' ', that's
+-- the only one we check for
+isWhitespace :: Char -> Bool
+isWhitespace c = c == ' '
+
+-- Helper to 'increment' a character by adding 1 to its ASCII code
+-- Useful for implementing 'string arithmetic' (i.e., for SPOJ problems)
+incChar :: Char -> Char
+incChar = chr . (+ 1) . ord
+
+-- Implementation of 'peel' function and helpers 'middle' and 'peel`'
+-- 'peel' returns a list of (char, char) pairs by 'peeling off' the first and last
+-- chars in a string until none are left.
+-- The helper defns. are pointful despite their simplicity because the base cases
+-- involve error handling that can't (?) be written in a point-free way.
+peel' :: String -> [Bookends]
 peel' [] = []
-peel' [x] = [(x, chr 0)]
+peel' [x] = [(x, sentinel)]
 peel' str = peel str
 middle :: [a] -> [a]
 middle [] = []
@@ -246,32 +290,22 @@ middle [x] = [x]
 middle xs = init.tail $ xs
 peel = (uncurry (:)) . ((head &&& last) &&& (peel'.middle))
 
+-- Part of an abaondoned implementation idea
 propagate :: EndsWithCarry -> EndsWithCarry
-
-isNum :: Char -> Bool
-isNum = (uncurry (&&)).((<= '9') &&& (>= 0))
 
 applyCarry :: Bool -> (Char, Char) -> (Char, Char)
 applyCarry b (x, y)
   | b && isnum y   = (x, inc y)
   | otherwise      = (x, y)
---
+
 extractCarry :: (Char, Char) -> Bool
 extractCarry (x, y) = isnum y && y > x
 
+-- Part of abaondoned implementation idea
 type PeeledWithCarry = (Bool, [(Char, Char)])
 
 accumulator :: Bookends -> Flagged PeeledString -> Flagged PeeledString
 accumulator (x, y) r =
-
--- rectify = fst &&& (uncurry max)
-
-type Flagged a = (Bool, a)
-type PeeledString = [(Char, Char)]
-type Bookends = (Char, Char)
-
-isWhitespace :: Char -> Bool
-isWhitespace c = c == ' '
 
 incBookends :: Bookends -> Bookends
 incBookends = fst &&& (incNonWhitespace.snd)
@@ -292,16 +326,10 @@ rectify fn = fn &&& fn
 -- TODO: Rewrite using (type-parameterized?) Monads / Arrows
 propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
 
-lessThan :: Bookends -> Bookends -> Bool
-lessThan b1 b2
-  | fst b1 == fst b2  = snd b1 < snd b2
-  | otherwise         = fst b1 < fst b2
+-- a -> ((a -> a), [a]) -> ((a -> a), [a])
 
-mapTuple :: (a -> b) -> (a, a) -> (b, b)
-mapTuple = join (***)
 
-a -> ((a -> a), [a]) -> ((a -> a), [a])
-
+-- Beginnings of a more 'sophisticated' solution using arrow-like operators
 {-
 Note: The following can almost certainly be accomplished more simply using arrows.
 *** NOTE: Use MapAccumL (!!!)
