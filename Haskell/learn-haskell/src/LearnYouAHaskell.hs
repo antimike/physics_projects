@@ -57,7 +57,7 @@ data UnitVector = UnitVector {
 
 
 
-data BinaryTree a = EmptyTree | Root a BinaryTree a BinaryTree a
+data BinaryTree a = EmptyTree | Root a (BinaryTree a) (BinaryTree a)
   deriving (Read, Show, Ord, Eq)
 
 instance Functor BinaryTree where
