@@ -17,6 +17,7 @@ import Control.Monad.Writer
 -- For SPOJ-y problems involving long input strings / char arithmetic
 import qualified Data.ByteString.Lazy as BSL
 import Data.Char
+import Data.List
 import qualified Data.ByteString.Char8 as BSC
 
 -- import Data.Text.Lazy (Text)
@@ -238,106 +239,140 @@ s = max x reverse x
 -- 'Bookends' is a type synonym for a pair of chars.  The name indicates their origin:
 -- the first and last chars (i.e., 'bookends') of a string are recursively 'peeled'
 -- off of a string into a list.
-type Flagged a = (Bool, a)
-type Bookends = (Char, Char)
+newtype Flagged a = Flag (Bool, a)
+newtype Bookends = Bookend (Char, Char)
+type BookendsOp = Bookends -> Bookends
+instance Show (Bookends) where
+  show b = "(" ++ (show $ front b) ++ ", " ++ (show $ back b) ++ ")"
 instance Eq (Bookends) where
-  (==) b1 b2 = fst b1 == fst b2 && snd b1 == snd b2
+  (==) b1 b2 = front b1 == front b2 && back b1 == back b2
 instance Ord (Bookends) where
   (<=) b1 b2
-    | fst b1 == fst b2  = snd b1 < snd b2
-    | otherwise         = fst b1 < fst b2
+    | front b1 == front b2  = back b1 < back b2
+    | otherwise             = front b1 < front b2
+instance Enum (Bookends) where
+  toEnum n    = Bookend (decodeInt n) where
+    decodeInt = chr.(flip div $ 128) &&& chr.(flip mod $ 128)
+  fromEnum b  = (uncurry (+)) (radixify b) where
+    radixify  = (* 128).ord.front &&& ord.back
+instance Functor (Flagged) where
+  fmap fn (Flag (b, x)) = Flag (b, fn x)
+instance Applicative (Flagged) where
+  pure x = Flag (False, x)
+  (<*>) (Flag (b, fn)) (Flag (b', x)) = Flag (b || b', fn x)
 
--- Comparator for 'Bookends' type
--- Unnecessary bc of 'Ord' instance
-lessThan :: Bookends -> Bookends -> Bool
-lessThan b1 b2
-  | fst b1 == fst b2  = snd b1 < snd b2
-  | otherwise         = fst b1 < fst b2
-
-mapTuple :: (a -> b) -> (a, a) -> (b, b)
-mapTuple = join (***)
-
--- 'sentinel' char: ASCII char corresponding to code 0
-sentinel = chr 0
-
--- Helper to determine if a char is a number
--- Useful for determining when a 'carry' operation is necessary
-isNum :: Char -> Bool
-isNum = (uncurry (&&)).((<= '9') &&& (>= 0))
-
--- Helper to identify whitespace chars
--- Since the only whitespace char used in this implementation is ' ', that's
--- the only one we check for
-isWhitespace :: Char -> Bool
-isWhitespace c = c == ' '
-
--- Helper to 'increment' a character by adding 1 to its ASCII code
--- Useful for implementing 'string arithmetic' (i.e., for SPOJ problems)
-incChar :: Char -> Char
-incChar = chr . (+ 1) . ord
+front :: Bookends -> Char
+back :: Bookends -> Char
+flag :: Bookends -> Flagged Bookends
+front (Bookend (c1, c2)) = c1
+back (Bookend (c1, c2)) = c2
+flag b = Flag (back b > front b, b)
 
 -- Implementation of 'peel' function and helpers 'middle' and 'peel`'
 -- 'peel' returns a list of (char, char) pairs by 'peeling off' the first and last
 -- chars in a string until none are left.
 -- The helper defns. are pointful despite their simplicity because the base cases
 -- involve error handling that can't (?) be written in a point-free way.
-peel' :: String -> [Bookends]
-peel' [] = []
-peel' [x] = [(x, sentinel)]
-peel' str = peel str
-middle :: [a] -> [a]
-middle [] = []
-middle [x] = [x]
-middle xs = init.tail $ xs
-peel = (uncurry (:)) . ((head &&& last) &&& (peel'.middle))
+-- peel' :: String -> [PairOf Char]
+-- peel' [] = []
+-- peel' [x] = [link x sentinel]
+-- peel' str = peel str
+-- middle :: [a] -> [a]
+-- middle [] = []
+-- middle [x] = [x]
+-- middle xs = init.tail $ xs
+-- peel = (uncurry (:)) . (Bookend.(head &&& last) &&& (peel'.middle))
 
--- Part of an abaondoned implementation idea
-propagate :: EndsWithCarry -> EndsWithCarry
+peel :: String -> [PairOf Char]
+peel [] = []
+peel [x] = [link x sentinel]
+peel (x:xs) = link x (last xs) : (peel $ init xs)
 
-applyCarry :: Bool -> (Char, Char) -> (Char, Char)
-applyCarry b (x, y)
-  | b && isnum y   = (x, inc y)
-  | otherwise      = (x, y)
+-- Miscellaneous stuff--might be useful, might not
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple = join (***)
+sentinel = chr 0
+isNum :: Char -> Bool
+isNum = (uncurry (&&)).((<= '9') &&& (>= '0'))
+isWhitespace :: Char -> Bool
+isWhitespace c = c == ' '
 
-extractCarry :: (Char, Char) -> Bool
-extractCarry (x, y) = isnum y && y > x
 
--- Part of abaondoned implementation idea
-type PeeledWithCarry = (Bool, [(Char, Char)])
+nextOp :: PairOf Char -> Transformation PairOf Char Char
+nextOp p = link firstOf (carry.secOf) where
+  carry = if firstOf p < secOf p && firstOf p /= sentinel then succ else id
 
-accumulator :: Bookends -> Flagged PeeledString -> Flagged PeeledString
-accumulator (x, y) r =
+nextOp' :: PairOf Char -> Transformation PairOf Char Char
 
-incBookends :: Bookends -> Bookends
-incBookends = fst &&& (incNonWhitespace.snd)
-  where incNonWhitespace c = if (isWhitespace c) c else inc c
+step1 :: [PairOf Char] -> (Transformation PairOf Char Char, [PairOf Char])
+step1 ends = mapAccumL  (\trans pair -> nextOp &&& ((|>) $ duplicate firstOf)
+  $ (trans |> pair))
+  ident ends
 
-rectifySnd :: Bookends -> Flagged Bookends
-rectifySnd (x, y) = (not (isSpace y) && y > x, (x, x))
+step2 ::
+  (Transformation PairOf Char Char, [PairOf Char]) ->
+  (Transformation PairOf Char Char, [PairOf Char])
+step2 (trans, ends) = mapAccumL (\trans pair -> )
+
+-- Note that this generalizes the notion of a linear transformation
+-- This is equivalent to x |> y = extend (extract x $ y), where extract / extend
+-- are the standard comonad functions.  TODO: Rewrite as a subclass / specialization of
+-- comonad?
+-- The idea in the context of this problem is to "transform" a pair via a pair
+-- of functions of type (Char, Char) -> Char
+class Transformable t where
+  (|>) :: t (t a -> b) -> t a -> t b
+type Transformation t a b = t (t a -> b)
+
+type CharFn = Char -> Char
+newtype PairOf a = PairWith {applicator :: forall b. (a -> a -> b) -> b}
+instance (Show a) => Show (PairOf a) where
+  show (PairWith f) = f $ \x y -> "(" ++ show x ++ ", " ++ show y ++ ")"
+instance Functor (PairOf) where
+  fmap fn (PairWith g) = PairWith $ \h -> h (fn.g $ \x _ -> x) (fn.g $ \_ y -> y)
+instance Applicative (PairOf) where
+  pure x = PairWith $ \f -> f x x
+  (<*>) fns args = PairWith $ \fn -> fn (firstOf fns $ firstOf args) (secOf fns $ secOf args)
+instance Transformable (PairOf) where
+  (|>) fns args = PairWith $ \fn -> fn (firstOf fns $ args) (secOf fns $ args)
+
+link :: a -> a -> PairOf a
+link x y = PairWith $ \f -> f x y
+
+firstOf :: PairOf a -> a
+secOf :: PairOf a -> a
+switch :: Transformation PairOf a a
+ident :: Transformation PairOf a a
+duplicate :: (PairOf a -> b) -> Transformation PairOf a b
+firstOf p = (applicator p) $ (\x _ -> x)
+secOf p = (applicator p) $ (\_ y -> y)
+switch = link secOf firstOf
+ident = link firstOf secOf
+duplicate fn = link fn fn
+
+
+-- incBookends :: Bookends -> Bookends
+-- incBookends = fst &&& (incNonWhitespace.snd)
+--   where incNonWhitespace c = if (isWhitespace c) c else inc c
+
+-- rectifySnd :: Bookends -> Flagged Bookends
+-- rectifySnd (x, y) = (not (isSpace y) && y > x, (x, x))
 
 -- flagPair :: (Char, Char) -> Flagged (Char, Char)
 -- flagPair (x, y) = (not (isSpace y) && y > x, (x, x))
 
-applyFlag :: Flagged Bookends -> Flagged Bookends
-applyFlag (f, b) =
-
-rectify :: (Bookends -> Char) -> Bookends -> Bookends
-rectify fn = fn &&& fn
-
 -- TODO: Rewrite using (type-parameterized?) Monads / Arrows
-propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
+-- propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
+-- accr :: Flagged [Bookends] -> Flagged Bookends -> Flagged [Bookends]
 
-instance Functor (Flagged) where
-  fmap f: a -> b
-  [(c1, c2), (c3, c4), ...] -> [(c1, c1)]
+-- foldl (\acc next -> (fst acc ++ pure.rect.(snd acc) $ next, )) ([], id) peeled
 
--- a -> ((a -> a), [a]) -> ((a -> a), [a])
 {-
 Options:
 1. Functor / monad / applicative instance for 'Flagged' type
 2. Arrow-based computation
 3. Traversable
-4. 
+4.
 -}
 
 
@@ -348,23 +383,22 @@ Note: The following can almost certainly be accomplished more simply using arrow
 -}
 
 
-class (Monoid h) => MutableOperator m a b where
-  begin :: a -> m a b
-  continue :: m a b -> a -> m a b
-  history :: m a b -> h b
-  mapo ::
+-- class (Monoid h) => MutableOperator m a b where
+--   begin :: a -> m a b
+--   continue :: m a b -> a -> m a b
+--   history :: m a b -> h b
 
 
-  infixl 7
+  -- infixl 7
 
-newtype Propagator a b = Propagator {
-  hist' :: [b],
-  comp' :: a -> b,
-  prop' :: a -> Residue a b -> Residue a b
-}
-
-instance MutableOperator (Propagator a b) where
-  process = prop'
+-- newtype Propagator a b = Propagator {
+--   hist' :: [b],
+--   comp' :: a -> b,
+--   prop' :: a -> Residue a b -> Residue a b
+-- }
+--
+-- instance MutableOperator (Propagator a b) where
+--   process = prop'
 
 
 
