@@ -205,35 +205,8 @@ sndT (PairT up) = up $ \_ y -> y
   -- > Breakpoint detector for large datasets
 
 -- SPOJ problem: next palindrome
--- Prerequisites (also useful for other SPOJ problems):
-  -- String arithmetic (for very long integer inputs)
 
-{-
-How to build the next palindrome:
-
-- reverse input
-- x:[] :-> x
-- x:y:[] :-> (x:y)
-- f m l :->
-  - l m l if l >= f
-  - f (m + 1) f otherwise
-
-8999999999
-
-899  :->  909
-
-- List of "endpoints" (i.e., (f:m:l) -> (f, l) applied recursively)
-- Recursive datatype to encapsulate parsing logic?
-
-y = reverse x - x
-z = positives y
-s = max x reverse x
-
-
-
--}
-
--- Type defns used in this problem:
+-- First attempt:
 -- 'Flagged' pairs a type with a boolean flag.  Useful for indicating whether
 -- a 'carry' operation needs to be propagated after 'rectifying' a pair of chars.
 -- 'Bookends' is a type synonym for a pair of chars.  The name indicates their origin:
@@ -268,25 +241,103 @@ front (Bookend (c1, c2)) = c1
 back (Bookend (c1, c2)) = c2
 flag b = Flag (back b > front b, b)
 
--- Implementation of 'peel' function and helpers 'middle' and 'peel`'
--- 'peel' returns a list of (char, char) pairs by 'peeling off' the first and last
--- chars in a string until none are left.
--- The helper defns. are pointful despite their simplicity because the base cases
--- involve error handling that can't (?) be written in a point-free way.
--- peel' :: String -> [PairOf Char]
--- peel' [] = []
--- peel' [x] = [link x sentinel]
--- peel' str = peel str
--- middle :: [a] -> [a]
--- middle [] = []
--- middle [x] = [x]
--- middle xs = init.tail $ xs
--- peel = (uncurry (:)) . (Bookend.(head &&& last) &&& (peel'.middle))
+-- Second attempt: Based on Transformable typeclass / use of mapAccumL
+-- Note that this generalizes the notion of a linear transformation
+-- This is equivalent to x |> y = extend (extract x $ y), where extract / extend
+-- are the standard comonad functions.  TODO: Rewrite as a subclass / specialization of
+-- comonad?
+-- The idea in the context of this problem is to "transform" a pair via a pair
+-- of functions of type (Char, Char) -> Char
+
+-- Class / type declarations
+class Tensorial t where
+  (|>) :: (Tensorial s) => t (t a -> s b) -> t a -> t s b
+
+
+instance (Transformable t) => Transformable (t a) where
+  (|>) wrappedFn wrappedVal =
+    -- t a (t a b -> c) -> t a b -> t a c
+    -- a x (a x b -> c) -> (a x b) -> (a x c)
+
+t ... (Transformation t') ...
+-- Another kind of "type derivative": replacing an argument to a type constructor "a" with
+-- "t a -> b"
+-- "Type antisymmetrization" on monoids?
+
+
+class Transformable t where
+  (|>) :: t (t a -> b) -> t a -> t b
+  (<|) :: t a -> t (t a -> b) -> t b
+  (<|) = flip (|>)
+type Transformation t a b = t (t a -> b)
+newtype PairOf a = PairWith {applicator :: forall b. (a -> a -> b) -> b}
+
+newtype ScottPair a b = PairWith {applicator :: forall c. (a -> b -> c) -> c}
+instance (Show a, Show b) => Show (ScottPair a b) where
+  show (PairWith app) = app $ \x y -> "(" ++ show x ++ ", " ++ show y ++ ")"
+instance Transformable (ScottPair) where
+  definitions
+
+-- Instance declarations
+instance (Show a) => Show (PairOf a) where
+  show (PairWith f) = f $ \x y -> "(" ++ show x ++ ", " ++ show y ++ ")"
+instance Transformable (PairOf) where
+  (|>) fns args = PairWith $ \fn -> fn (firstOf fns $ args) (secOf fns $ args)
+
+-- Not sure these are necessary, but they provide a useful illustration
+instance Functor (PairOf) where
+  fmap fn (PairWith g) = PairWith $ \h -> h (fn.g $ \x _ -> x) (fn.g $ \_ y -> y)
+instance Applicative (PairOf) where
+  pure x = PairWith $ \f -> f x x
+  (<*>) fns args = PairWith $ \fn -> fn (firstOf fns $ firstOf args) (secOf fns $ secOf args)
+
+-- Helper / convenience fns for types defined above
+link :: a -> a -> PairOf a
+firstOf :: PairOf a -> a
+secOf :: PairOf a -> a
+switch :: Transformation PairOf a a
+ident :: Transformation PairOf a a
+duplicate :: (PairOf a -> b) -> Transformation PairOf a b
+link x y = PairWith $ \f -> f x y
+firstOf p = (applicator p) $ (\x _ -> x)
+secOf p = (applicator p) $ (\_ y -> y)
+switch = link secOf firstOf
+ident = link firstOf secOf
+duplicate fn = link fn fn
 
 peel :: String -> [PairOf Char]
 peel [] = []
 peel [x] = [link x sentinel]
 peel (x:xs) = link x (last xs) : (peel $ init xs)
+
+nextOp :: PairOf Char -> Transformation PairOf Char Char
+nextOp p = link firstOf (carry.secOf) where
+  carry = if firstOf p < secOf p && firstOf p /= sentinel then succ else id
+
+nextOp' :: PairOf Char -> Transformation PairOf Char Char
+nextOp' p =
+
+type Accumulator a b = a -> b -> (a, b)
+transformAccumL :: (Traversible s, Transformable t) =>
+  Accumulator (Transformation t a b) (t a)
+  -> Transformation t a b
+  -> s t a
+  -> (Transformation t a b, s t a)
+transformAccumL accum seed travtrans = mapAccumL
+
+
+
+
+step1 :: [PairOf Char] -> (Transformation PairOf Char Char, [PairOf Char])
+step1 ends = mapAccumL  (\trans pair -> nextOp &&& (<| duplicate firstOf)
+  $ (trans |> pair))
+  ident ends
+
+step2 ::
+  (Transformation PairOf Char Char, [PairOf Char]) ->
+  (Transformation PairOf Char Char, [PairOf Char])
+step2 (trans, ends) = mapAccumL (\trans pair -> )
+
 
 -- Miscellaneous stuff--might be useful, might not
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
@@ -296,84 +347,6 @@ isNum :: Char -> Bool
 isNum = (uncurry (&&)).((<= '9') &&& (>= '0'))
 isWhitespace :: Char -> Bool
 isWhitespace c = c == ' '
-
-
-nextOp :: PairOf Char -> Transformation PairOf Char Char
-nextOp p = link firstOf (carry.secOf) where
-  carry = if firstOf p < secOf p && firstOf p /= sentinel then succ else id
-
-nextOp' :: PairOf Char -> Transformation PairOf Char Char
-
-step1 :: [PairOf Char] -> (Transformation PairOf Char Char, [PairOf Char])
-step1 ends = mapAccumL  (\trans pair -> nextOp &&& ((|>) $ duplicate firstOf)
-  $ (trans |> pair))
-  ident ends
-
-step2 ::
-  (Transformation PairOf Char Char, [PairOf Char]) ->
-  (Transformation PairOf Char Char, [PairOf Char])
-step2 (trans, ends) = mapAccumL (\trans pair -> )
-
--- Note that this generalizes the notion of a linear transformation
--- This is equivalent to x |> y = extend (extract x $ y), where extract / extend
--- are the standard comonad functions.  TODO: Rewrite as a subclass / specialization of
--- comonad?
--- The idea in the context of this problem is to "transform" a pair via a pair
--- of functions of type (Char, Char) -> Char
-class Transformable t where
-  (|>) :: t (t a -> b) -> t a -> t b
-type Transformation t a b = t (t a -> b)
-
-type CharFn = Char -> Char
-newtype PairOf a = PairWith {applicator :: forall b. (a -> a -> b) -> b}
-instance (Show a) => Show (PairOf a) where
-  show (PairWith f) = f $ \x y -> "(" ++ show x ++ ", " ++ show y ++ ")"
-instance Functor (PairOf) where
-  fmap fn (PairWith g) = PairWith $ \h -> h (fn.g $ \x _ -> x) (fn.g $ \_ y -> y)
-instance Applicative (PairOf) where
-  pure x = PairWith $ \f -> f x x
-  (<*>) fns args = PairWith $ \fn -> fn (firstOf fns $ firstOf args) (secOf fns $ secOf args)
-instance Transformable (PairOf) where
-  (|>) fns args = PairWith $ \fn -> fn (firstOf fns $ args) (secOf fns $ args)
-
-link :: a -> a -> PairOf a
-link x y = PairWith $ \f -> f x y
-
-firstOf :: PairOf a -> a
-secOf :: PairOf a -> a
-switch :: Transformation PairOf a a
-ident :: Transformation PairOf a a
-duplicate :: (PairOf a -> b) -> Transformation PairOf a b
-firstOf p = (applicator p) $ (\x _ -> x)
-secOf p = (applicator p) $ (\_ y -> y)
-switch = link secOf firstOf
-ident = link firstOf secOf
-duplicate fn = link fn fn
-
-
--- incBookends :: Bookends -> Bookends
--- incBookends = fst &&& (incNonWhitespace.snd)
---   where incNonWhitespace c = if (isWhitespace c) c else inc c
-
--- rectifySnd :: Bookends -> Flagged Bookends
--- rectifySnd (x, y) = (not (isSpace y) && y > x, (x, x))
-
--- flagPair :: (Char, Char) -> Flagged (Char, Char)
--- flagPair (x, y) = (not (isSpace y) && y > x, (x, x))
-
--- TODO: Rewrite using (type-parameterized?) Monads / Arrows
--- propagateFlag :: (Bookends -> Bookends) -> Flagged Bookends -> Flagged Bookends
--- accr :: Flagged [Bookends] -> Flagged Bookends -> Flagged [Bookends]
-
--- foldl (\acc next -> (fst acc ++ pure.rect.(snd acc) $ next, )) ([], id) peeled
-
-{-
-Options:
-1. Functor / monad / applicative instance for 'Flagged' type
-2. Arrow-based computation
-3. Traversable
-4.
--}
 
 
 -- Beginnings of a more 'sophisticated' solution using arrow-like operators
